@@ -501,6 +501,65 @@ class EDA:
         st.subheader("샘플 데이터 (전처리 후)")
         st.dataframe(df.head())
 
+        # --- [신규 추가] 연도별 전체 인구 추이 분석 ---
+        st.markdown("---")
+        st.subheader("2. 연도별 전체 인구 추이 (전국)")
+
+        # '전국' 데이터 필터링
+        korea_df = df[df['지역'] == '전국'].copy()
+
+        # 최근 3년 데이터 필터링
+        recent_3_years = korea_df.nlargest(3, '연도')
+        
+        # 최근 3년간 연평균 출생 및 사망자 수 계산
+        avg_births = recent_3_years['출생아수(명)'].mean()
+        avg_deaths = recent_3_years['사망자수(명)'].mean()
+        avg_change = avg_births - avg_deaths
+
+        # 가장 최근 데이터 가져오기
+        last_year_data = korea_df.nlargest(1, '연도')
+        last_year = last_year_data['연도'].iloc[0]
+        last_population = last_year_data['인구'].iloc[0]
+
+        # 2035년까지 예측
+        predictions = []
+        current_pop = last_population
+        for year in range(last_year + 1, 2036):
+            current_pop += avg_change
+            predictions.append({'연도': year, '인구': current_pop})
+        
+        pred_df = pd.DataFrame(predictions)
+
+        # 시각화
+        fig, ax = plt.subplots(figsize=(12, 6))
+
+        # 실제 데이터 플롯
+        sns.lineplot(data=korea_df, x='연도', y='인구', ax=ax, marker='o', label='Actual Population')
+        
+        # 예측 데이터 플롯
+        sns.lineplot(data=pred_df, x='연도', y='인구', ax=ax, marker='o', linestyle='--', color='red', label='Predicted Population (to 2035)')
+
+        # 그래프 제목 및 레이블 설정 (영문)
+        ax.set_title('Total Population Trend and Prediction in Korea')
+        ax.set_xlabel('Year')
+        ax.set_ylabel('Population')
+        ax.grid(True)
+        ax.legend()
+        
+        # 천 단위 콤마 포맷터
+        ax.get_yaxis().set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
+
+        st.pyplot(fig)
+
+        st.markdown(f"""
+        #### 인구 예측 요약
+        - **예측 기준**: 최근 3년간('전국' 기준) 연평균 출생아 수와 사망자 수의 차이를 기반으로 함
+          - 연평균 출생아 수: `{int(avg_births):,}` 명
+          - 연평균 사망자 수: `{int(avg_deaths):,}` 명
+          - 연평균 인구 변화량: `{int(avg_change):,}` 명
+        - **가장 최근 인구 ({last_year}년)**: `{int(last_population):,}` 명
+        - **2035년 예측 인구**: `{int(pred_df.iloc[-1]['인구']):,}` 명
+        """)
 
 # ---------------------
 # 페이지 객체 생성
