@@ -464,7 +464,6 @@ class EDA:
                 > - 극단치의 영향이 완화되어 이후 분석·모델링 안정성이 높아집니다.
                 """)
 
-    # --- [신규 추가] 지역별 인구 분석 함수 ---
     def run_population_trends_eda(self):
         st.header("📈 지역별 인구 트렌드 분석")
         uploaded = st.file_uploader("데이터셋 업로드 (population_trends.csv)", type="csv", key="population_uploader")
@@ -478,17 +477,17 @@ class EDA:
 
         st.subheader("1. 데이터 전처리 및 기본 정보")
 
-        # --- 요청사항 1: 결측치('-')를 0으로 치환 ---
+        # --- 결측치('-')를 0으로 치환 ---
         df.replace('-', 0, inplace=True)
         st.write("✅ '세종' 지역을 포함한 모든 데이터의 결측치('-')를 0으로 치환했습니다.")
         
-        # --- 요청사항 2: 주요 컬럼 숫자형으로 변환 ---
+        # --- 주요 컬럼 숫자형으로 변환 ---
         cols_to_numeric = ['인구', '출생아수(명)', '사망자수(명)']
         for col in cols_to_numeric:
             df[col] = pd.to_numeric(df[col])
         st.write(f"✅ 다음 컬럼들을 숫자(numeric) 타입으로 변환했습니다: {', '.join(cols_to_numeric)}")
 
-        # --- 요청사항 3: 데이터 요약 통계 및 구조 출력 ---
+        # --- 데이터 요약 통계 및 구조 출력 ---
         st.markdown("---")
         st.subheader("데이터 요약 통계 (`df.describe()`)")
         st.dataframe(df.describe())
@@ -501,7 +500,6 @@ class EDA:
         st.subheader("샘플 데이터 (전처리 후)")
         st.dataframe(df.head())
 
-        # --- [신규 추가] 연도별 전체 인구 추이 분석 ---
         st.markdown("---")
         st.subheader("2. 연도별 전체 인구 추이 (전국)")
 
@@ -532,23 +530,14 @@ class EDA:
 
         # 시각화
         fig, ax = plt.subplots(figsize=(12, 6))
-
-        # 실제 데이터 플롯
         sns.lineplot(data=korea_df, x='연도', y='인구', ax=ax, marker='o', label='Actual Population')
-        
-        # 예측 데이터 플롯
         sns.lineplot(data=pred_df, x='연도', y='인구', ax=ax, marker='o', linestyle='--', color='red', label='Predicted Population (to 2035)')
-
-        # 그래프 제목 및 레이블 설정 (영문)
         ax.set_title('Total Population Trend and Prediction in Korea')
         ax.set_xlabel('Year')
         ax.set_ylabel('Population')
         ax.grid(True)
         ax.legend()
-        
-        # 천 단위 콤마 포맷터
         ax.get_yaxis().set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
-
         st.pyplot(fig)
 
         st.markdown(f"""
@@ -559,6 +548,73 @@ class EDA:
           - 연평균 인구 변화량: `{int(avg_change):,}` 명
         - **가장 최근 인구 ({last_year}년)**: `{int(last_population):,}` 명
         - **2035년 예측 인구**: `{int(pred_df.iloc[-1]['인구']):,}` 명
+        """)
+
+        # --- [신규 추가] 지역별 인구 변화량 순위 분석 ---
+        st.markdown("---")
+        st.subheader("3. 지역별 인구 변화 (최근 5년)")
+
+        df_local = df[df['지역'] != '전국'].copy()
+        
+        end_year = df_local['연도'].max()
+        start_year = end_year - 5
+
+        pop_start = df_local[df_local['연도'] == start_year][['지역', '인구']]
+        pop_end = df_local[df_local['연도'] == end_year][['지역', '인구']]
+
+        merged_df = pd.merge(pop_start, pop_end, on='지역', suffixes=(f'_{start_year}', f'_{end_year}'))
+        
+        merged_df['change'] = merged_df[f'인구_{end_year}'] - merged_df[f'인구_{start_year}']
+        merged_df['change_rate'] = (merged_df['change'] / merged_df[f'인구_{start_year}']) * 100
+
+        region_map = {
+            '서울': 'Seoul', '부산': 'Busan', '대구': 'Daegu', '인천': 'Incheon',
+            '광주': 'Gwangju', '대전': 'Daejeon', '울산': 'Ulsan', '세종': 'Sejong',
+            '경기': 'Gyeonggi', '강원': 'Gangwon', '충북': 'Chungbuk', '충남': 'Chungnam',
+            '전북': 'Jeonbuk', '전남': 'Jeonnam', '경북': 'Gyeongbuk', '경남': 'Gyeongnam',
+            '제주': 'Jeju'
+        }
+        merged_df['Region_EN'] = merged_df['지역'].map(region_map)
+
+        # 인구 변화량 그래프
+        st.write(f"#### Population Change ({start_year} vs {end_year})")
+        sorted_change = merged_df.sort_values('change', ascending=False)
+        sorted_change['change_k'] = sorted_change['change'] / 1000
+
+        fig1, ax1 = plt.subplots(figsize=(10, 8))
+        sns.barplot(data=sorted_change, x='change_k', y='Region_EN', ax=ax1, palette='viridis')
+        ax1.set_title(f'Population Change from {start_year} to {end_year}')
+        ax1.set_xlabel('Change (in thousands)')
+        ax1.set_ylabel('Region')
+        for p in ax1.patches:
+            width = p.get_width()
+            y = p.get_y() + p.get_height() / 2
+            ax1.text(width + (5 if width > 0 else -5), y, f'{width:,.1f}K', ha=('left' if width > 0 else 'right'), va='center')
+        st.pyplot(fig1)
+
+        # 인구 변화율 그래프
+        st.write(f"#### Population Change Rate ({start_year} vs {end_year})")
+        sorted_rate = merged_df.sort_values('change_rate', ascending=False)
+        
+        fig2, ax2 = plt.subplots(figsize=(10, 8))
+        sns.barplot(data=sorted_rate, x='change_rate', y='Region_EN', ax=ax2, palette='plasma')
+        ax2.set_title(f'Population Change Rate from {start_year} to {end_year}')
+        ax2.set_xlabel('Change Rate (%)')
+        ax2.set_ylabel('Region')
+        for p in ax2.patches:
+            width = p.get_width()
+            y = p.get_y() + p.get_height() / 2
+            ax2.text(width + (0.1 if width > 0 else -0.1), y, f'{width:.2f}%', ha=('left' if width > 0 else 'right'), va='center')
+        st.pyplot(fig2)
+
+        st.markdown("""
+        #### 그래프 해설
+        - **Population Change (절대 변화량)**: 최근 5년간 실제 인구가 얼마나 변했는지를 보여줍니다.
+          - **경기, 인천, 세종, 충남, 제주** 지역은 인구가 크게 증가했으며, 특히 **경기도**의 증가폭이 가장 두드러집니다.
+          - 반면 **서울, 부산, 대구** 등 주요 대도시는 인구가 감소하는 경향을 보입니다.
+        - **Population Change Rate (상대 변화율)**: 5년 전 인구 대비 변화율을 나타냅니다.
+          - **세종시**는 기존 인구 규모가 작았기 때문에, 절대적인 증가량은 경기도보다 작지만 변화율 측면에서는 압도적으로 높은 수치를 기록했습니다.
+          - 이는 신도시 개발과 같은 급격한 인구 유입이 있었음을 시사합니다.
         """)
 
 # ---------------------
