@@ -202,8 +202,23 @@ class Logout:
 # ---------------------
 class EDA:
     def __init__(self):
-        st.title("📊 Bike Sharing Demand EDA")
-        uploaded = st.file_uploader("데이터셋 업로드 (train.csv)", type="csv")
+        st.title("📊 EDA 분석")
+
+        # 분석 선택 옵션 추가
+        analysis_choice = st.selectbox(
+            "분석할 데이터 종류를 선택하세요.",
+            ("Bike Sharing Demand", "지역별 인구 분석")
+        )
+
+        # 선택에 따라 다른 분석을 보여주도록 분기
+        if analysis_choice == "Bike Sharing Demand":
+            self.run_bike_sharing_eda()
+        elif analysis_choice == "지역별 인구 분석":
+            self.run_population_trends_eda()
+
+    def run_bike_sharing_eda(self):
+        st.header("🚲 Bike Sharing Demand EDA")
+        uploaded = st.file_uploader("데이터셋 업로드 (train.csv)", type="csv", key="bike_uploader")
         if not uploaded:
             st.info("train.csv 파일을 업로드 해주세요.")
             return
@@ -448,6 +463,43 @@ class EDA:
                 > - 오른쪽: 로그 변환 후 분포는 훨씬 균형잡힌 형태로, 중앙값 부근에 데이터가 집중됩니다.  
                 > - 극단치의 영향이 완화되어 이후 분석·모델링 안정성이 높아집니다.
                 """)
+
+    # --- [신규 추가] 지역별 인구 분석 함수 ---
+    def run_population_trends_eda(self):
+        st.header("📈 지역별 인구 트렌드 분석")
+        uploaded = st.file_uploader("데이터셋 업로드 (population_trends.csv)", type="csv", key="population_uploader")
+
+        if not uploaded:
+            st.info("population_trends.csv 파일을 업로드 해주세요.")
+            return
+        
+        # --- 파일이 업로드 되면 분석 시작 ---
+        df = pd.read_csv(uploaded)
+
+        st.subheader("1. 데이터 전처리 및 기본 정보")
+
+        # --- 요청사항 1: 결측치('-')를 0으로 치환 ---
+        df.replace('-', 0, inplace=True)
+        st.write("✅ '세종' 지역을 포함한 모든 데이터의 결측치('-')를 0으로 치환했습니다.")
+        
+        # --- 요청사항 2: 주요 컬럼 숫자형으로 변환 ---
+        cols_to_numeric = ['인구', '출생아수(명)', '사망자수(명)']
+        for col in cols_to_numeric:
+            df[col] = pd.to_numeric(df[col])
+        st.write(f"✅ 다음 컬럼들을 숫자(numeric) 타입으로 변환했습니다: {', '.join(cols_to_numeric)}")
+
+        # --- 요청사항 3: 데이터 요약 통계 및 구조 출력 ---
+        st.markdown("---")
+        st.subheader("데이터 요약 통계 (`df.describe()`)")
+        st.dataframe(df.describe())
+
+        st.subheader("데이터프레임 구조 (`df.info()`)")
+        buffer = io.StringIO()
+        df.info(buf=buffer)
+        st.text(buffer.getvalue())
+
+        st.subheader("샘플 데이터 (전처리 후)")
+        st.dataframe(df.head())
 
 
 # ---------------------
