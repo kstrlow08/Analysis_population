@@ -692,6 +692,59 @@ class EDA:
             - **세종(Sejong)**은 2012년부터 나타나며 가파르게 성장하는 작은 영역으로 표시됩니다.
             """)
 
+        # --- [신규 추가] 인구 동태 분석 탭 ---
+        with tab6:
+            st.subheader("6. 지역별 인구 동태 심층 분석")
+            
+            # 사용자 선택을 위한 지역 목록 (전국 제외)
+            local_regions = df[df['지역'] != '전국']['지역'].unique()
+            selected_region = st.selectbox("분석할 지역을 선택하세요.", local_regions, key="dynamic_analysis_region")
+
+            # 선택된 지역 데이터 필터링
+            region_df = df[df['지역'] == selected_region].sort_values('연도')
+            
+            st.write(f"#### {selected_region}의 출생, 사망 및 자연증감 추이")
+
+            fig, ax = plt.subplots(figsize=(12, 6))
+            ax.plot(region_df['연도'], region_df['출생아수(명)'], marker='o', color='green', label='Births')
+            ax.plot(region_df['연도'], region_df['사망자수(명)'], marker='o', color='red', label='Deaths')
+            ax.bar(region_df['연도'], region_df['자연증감'], color='grey', alpha=0.5, label='Natural Increase')
+            ax.axhline(0, color='black', linestyle='--', linewidth=1) # 0 기준선
+            ax.set_title(f'Births, Deaths, and Natural Increase in {region_map.get(selected_region, selected_region)}')
+            ax.set_xlabel('Year')
+            ax.set_ylabel('Number of People')
+            ax.legend()
+            ax.get_yaxis().set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
+            st.pyplot(fig)
+
+            # 데드크로스 분석
+            dead_cross_year = region_df[region_df['자연증감'] < 0]['연도'].min()
+            if pd.notna(dead_cross_year):
+                st.error(f"**데드크로스 발생**: {selected_region}은(는) **{int(dead_cross_year)}년**부터 사망자 수가 출생아 수를 넘어서는 '인구 데드크로스' 현상이 시작되었습니다.")
+            else:
+                st.success(f"**데드크로스 미발생**: {selected_region}은(는) 아직 출생아 수가 사망자 수보다 많습니다.")
+
+            st.markdown("""
+            #### 그래프 및 분석 해설
+            - **출생아 수(Births)**와 **사망자 수(Deaths)** 추이를 통해 인구 변동의 핵심 요인을 파악할 수 있습니다.
+            - **자연 증감(Natural Increase)**은 `출생아 수 - 사망자 수`로, 양수(+)이면 인구가 자연적으로 증가하고, 음수(-)이면 자연적으로 감소함을 의미합니다.
+            - 두 선이 교차하고 자연 증감 막대가 0 아래로 내려가는 시점이 바로 **'데드크로스'**가 발생한 해입니다.
+            ---
+            """)
+
+            st.write(f"#### 최신 연도({df['연도'].max()}) 기준, 모든 지역의 자연증감 비교")
+            latest_year_df = df[df['연도'] == df['연도'].max()]
+            latest_local_df = latest_year_df[latest_year_df['지역'] != '전국'].sort_values('자연증감', ascending=False)
+            
+            fig2, ax2 = plt.subplots(figsize=(10, 8))
+            palette = sns.diverging_palette(10, 240, n=2) # Red for negative, Blue for positive
+            sns.barplot(data=latest_local_df, x='자연증감', y='지역', ax=ax2, 
+                        palette=[palette[1] if x > 0 else palette[0] for x in latest_local_df['자연증감']])
+            ax2.set_title(f"Natural Population Increase by Region ({df['연도'].max()})")
+            ax2.set_xlabel("Natural Increase (Births - Deaths)")
+            ax2.set_ylabel("Region")
+            st.pyplot(fig2)
+
 
 # ---------------------
 # 페이지 객체 생성
