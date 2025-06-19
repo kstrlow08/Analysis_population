@@ -645,23 +645,12 @@ class EDA:
             - 각 색상 영역의 **두께**가 해당 지역의 인구 규모를 의미합니다.
             - **경기(Gyeonggi)** 지역을 나타내는 영역(보통 가장 큰 영역 중 하나)이 시간이 지남에 따라 꾸준히 두꺼워지는 것을 통해 지속적인 인구 증가를 확인할 수 있습니다.
             - 반면 **서울(Seoul)** 영역은 점차 얇아지는 모습을 보여 인구 감소 추세를 시각적으로 파악할 수 있습니다.
-            - **세종(Sejong)**은 2012년부터 나타나며 가파르게 성장하는 작은 영역으로 표시됩니다.
+            - **세종(Sejong)** 지역에서는 2012년부터 나타나며 가파르게 성장하는 작은 영역으로 표시됩니다.
             """)
 
         # --- [신규 추가] 인구 동태 분석 탭 ---
         with tab6:
             st.subheader("6. 지역별 인구 동태 심층 분석")
-
-            # --- 한글 폰트 설정 (그래프용) ---
-            # 이 코드는 실행 환경에 따라 적절한 폰트가 필요할 수 있습니다.
-            # 일반적으로 'Malgun Gothic'은 Windows, 'AppleGothic'은 macOS에서 사용 가능합니다.
-            # Streamlit Cloud와 같은 리눅스 환경에서는 나눔고딕 등의 폰트를 설치해야 할 수 있습니다.
-            try:
-                plt.rcParams['font.family'] = 'Malgun Gothic'
-                plt.rcParams['axes.unicode_minus'] = False # 마이너스 폰트 깨짐 방지
-            except:
-                # Malgun Gothic이 없는 경우 기본 폰트로 실행
-                pass
             
             # 사용자 선택을 위한 지역 목록 (전국 제외)
             local_regions = df[df['지역'] != '전국']['지역'].unique()
@@ -707,13 +696,17 @@ class EDA:
             latest_year_df['자연증감'] = latest_year_df['출생아수(명)'] - latest_year_df['사망자수(명)']
             latest_local_df = latest_year_df[latest_year_df['지역'] != '전국'].sort_values('자연증감', ascending=False)
             
+            # --- [수정] 그래프를 그리기 전에 지역명을 영문으로 변환 ---
+            latest_local_df['Region_EN'] = latest_local_df['지역'].map(region_map)
+
             fig2, ax2 = plt.subplots(figsize=(10, 8))
             palette = sns.diverging_palette(10, 240, n=2)
-            sns.barplot(data=latest_local_df, x='자연증감', y='지역', ax=ax2, 
+            # --- [수정] y축에 한글 '지역' 대신 영문 'Region_EN'을 사용 ---
+            sns.barplot(data=latest_local_df, x='자연증감', y='Region_EN', ax=ax2, 
                         palette=[palette[1] if x > 0 else palette[0] for x in latest_local_df['자연증감']])
             ax2.set_title(f"Natural Population Increase by Region ({df['연도'].max()})")
             ax2.set_xlabel("Natural Increase (Births - Deaths)")
-            ax2.set_ylabel("Region")
+            ax2.set_ylabel("Region") # Y축 레이블도 영문으로 유지
             st.pyplot(fig2)
 
 
