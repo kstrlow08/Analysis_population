@@ -616,7 +616,6 @@ class EDA:
           - 이는 신도시 개발과 같은 급격한 인구 유입이 있었음을 시사합니다.
         """)
 
-        # --- [신규 추가] 연도별 인구 증감 순위 ---
         st.markdown("---")
         st.subheader("4. 연도별 인구 증감 Top 100")
         
@@ -650,6 +649,47 @@ class EDA:
         - 위 표는 모든 지역의 각 연도별 인구 증감(전년 대비)을 계산하여, **증가량이 크거나 감소량이 큰 순서대로 100개**의 사례를 보여줍니다.
         - **'Change'** 열의 배경색이 **파란색**에 가까울수록 인구가 크게 증가했음을 의미하며, **빨간색**에 가까울수록 크게 감소했음을 나타냅니다.
         - 이 표를 통해 어느 지역에서, 어느 연도에 인구 변동이 가장 활발했는지 직관적으로 파악할 수 있습니다.
+        """)
+
+        # --- [신규 추가] 지역별 인구 추이 누적 영역 그래프 ---
+        st.markdown("---")
+        st.subheader("5. 지역별 인구 추이 시각화")
+        
+        # 지역명 영문으로 변환 (df_local 재사용)
+        df_local['Region_EN'] = df_local['지역'].map(region_map)
+
+        # 피벗 테이블 생성
+        pivot_df = df_local.pivot_table(index='연도', columns='Region_EN', values='인구', aggfunc='sum')
+        pivot_df.fillna(0, inplace=True) # 세종시 등 결측치를 0으로 채움
+
+        # 시각화
+        fig, ax = plt.subplots(figsize=(14, 8))
+        
+        # 지역별로 구분되는 뚜렷한 색상맵 사용 (tab20은 20개의 색상을 제공)
+        colors = plt.cm.get_cmap('tab20', len(pivot_df.columns))
+        
+        # 누적 영역 그래프 생성
+        ax.stackplot(pivot_df.index, pivot_df.T, labels=pivot_df.columns, colors=colors.colors)
+        
+        # 그래프 스타일 설정
+        ax.set_title('Population Trend by Region (Stacked Area Chart)')
+        ax.set_xlabel('Year')
+        ax.set_ylabel('Population')
+        ax.get_yaxis().set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
+        
+        # 범례를 그래프 바깥 오른쪽에 배치
+        ax.legend(title='Regions', loc='upper left', bbox_to_anchor=(1.02, 1), borderaxespad=0.)
+        
+        plt.tight_layout(rect=[0, 0, 0.85, 1]) # 범례가 잘리지 않도록 레이아웃 조정
+        st.pyplot(fig)
+        
+        st.markdown("""
+        #### 그래프 해설
+        - 이 그래프는 각 지역의 연도별 인구수를 누적하여 보여줍니다. 전체 높이는 '전국'을 제외한 모든 지역의 인구 합계를 나타냅니다.
+        - 각 색상 영역의 **두께**가 해당 지역의 인구 규모를 의미합니다.
+        - **경기(Gyeonggi)** 지역을 나타내는 영역(보통 가장 큰 영역 중 하나)이 시간이 지남에 따라 꾸준히 두꺼워지는 것을 통해 지속적인 인구 증가를 확인할 수 있습니다.
+        - 반면 **서울(Seoul)** 영역은 점차 얇아지는 모습을 보여 인구 감소 추세를 시각적으로 파악할 수 있습니다.
+        - **세종(Sejong)**은 2012년부터 나타나며 가파르게 성장하는 작은 영역으로 표시됩니다.
         """)
 
 
