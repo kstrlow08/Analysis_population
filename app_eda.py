@@ -550,7 +550,6 @@ class EDA:
         - **2035년 예측 인구**: `{int(pred_df.iloc[-1]['인구']):,}` 명
         """)
 
-        # --- [신규 추가] 지역별 인구 변화량 순위 분석 ---
         st.markdown("---")
         st.subheader("3. 지역별 인구 변화 (최근 5년)")
 
@@ -616,6 +615,43 @@ class EDA:
           - **세종시**는 기존 인구 규모가 작았기 때문에, 절대적인 증가량은 경기도보다 작지만 변화율 측면에서는 압도적으로 높은 수치를 기록했습니다.
           - 이는 신도시 개발과 같은 급격한 인구 유입이 있었음을 시사합니다.
         """)
+
+        # --- [신규 추가] 연도별 인구 증감 순위 ---
+        st.markdown("---")
+        st.subheader("4. 연도별 인구 증감 Top 100")
+        
+        # '전국' 제외 및 연도순 정렬
+        df_local_sorted = df[df['지역'] != '전국'].sort_values(by=['지역', '연도'])
+
+        # 지역별로 그룹화하여 전년 대비 인구 증감 계산
+        df_local_sorted['증감'] = df_local_sorted.groupby('지역')['인구'].diff().fillna(0)
+        
+        # 절대값 기준으로 상위 100개 필터링
+        top_100_changes = df_local_sorted.reindex(df_local_sorted['증감'].abs().sort_values(ascending=False).index).head(100)
+
+        # 필요한 컬럼만 선택 및 이름 변경
+        top_100_display = top_100_changes[['연도', '지역', '인구', '증감']].copy()
+        top_100_display.rename(columns={'연도': 'Year', '지역': 'Region', '인구': 'Population', '증감': 'Change'}, inplace=True)
+        
+        # 스타일 적용하여 테이블 출력
+        st.dataframe(
+            top_100_display.style.format({
+                'Population': '{:,.0f}',
+                'Change': '{:,.0f}'
+            }).background_gradient(
+                cmap=sns.diverging_palette(10, 240, as_cmap=True), # 빨강-파랑 컬러맵
+                subset=['Change']
+            ),
+            hide_index=True,
+            width=600 # 테이블 너비 조절
+        )
+        st.markdown("""
+        #### 테이블 해설
+        - 위 표는 모든 지역의 각 연도별 인구 증감(전년 대비)을 계산하여, **증가량이 크거나 감소량이 큰 순서대로 100개**의 사례를 보여줍니다.
+        - **'Change'** 열의 배경색이 **파란색**에 가까울수록 인구가 크게 증가했음을 의미하며, **빨간색**에 가까울수록 크게 감소했음을 나타냅니다.
+        - 이 표를 통해 어느 지역에서, 어느 연도에 인구 변동이 가장 활발했는지 직관적으로 파악할 수 있습니다.
+        """)
+
 
 # ---------------------
 # 페이지 객체 생성
