@@ -490,7 +490,7 @@ class EDA:
         }
 
         # --- 탭 구조로 변경 ---
-        tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
             "기초 통계", "연도별 추이", "지역별 분석", "변화량 분석", "시각화"
         ])
 
