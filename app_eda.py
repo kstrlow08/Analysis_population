@@ -648,14 +648,29 @@ class EDA:
             - **세종(Sejong)**은 2012년부터 나타나며 가파르게 성장하는 작은 영역으로 표시됩니다.
             """)
 
+        # --- [신규 추가] 인구 동태 분석 탭 ---
         with tab6:
             st.subheader("6. 지역별 인구 동태 심층 분석")
+
+            # --- 한글 폰트 설정 (그래프용) ---
+            # 이 코드는 실행 환경에 따라 적절한 폰트가 필요할 수 있습니다.
+            # 일반적으로 'Malgun Gothic'은 Windows, 'AppleGothic'은 macOS에서 사용 가능합니다.
+            # Streamlit Cloud와 같은 리눅스 환경에서는 나눔고딕 등의 폰트를 설치해야 할 수 있습니다.
+            try:
+                plt.rcParams['font.family'] = 'Malgun Gothic'
+                plt.rcParams['axes.unicode_minus'] = False # 마이너스 폰트 깨짐 방지
+            except:
+                # Malgun Gothic이 없는 경우 기본 폰트로 실행
+                pass
             
+            # 사용자 선택을 위한 지역 목록 (전국 제외)
             local_regions = df[df['지역'] != '전국']['지역'].unique()
             selected_region = st.selectbox("분석할 지역을 선택하세요.", local_regions, key="dynamic_analysis_region")
 
+            # 선택된 지역 데이터 필터링
             region_df = df[df['지역'] == selected_region].sort_values('연도').copy()
             
+            # '자연증감' 컬럼을 여기서 생성
             region_df['자연증감'] = region_df['출생아수(명)'] - region_df['사망자수(명)']
 
             st.write(f"#### {selected_region}의 출생, 사망 및 자연증감 추이")
