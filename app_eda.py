@@ -46,21 +46,18 @@ class Home:
         if st.session_state.get("logged_in"):
             st.success(f"{st.session_state.get('user_email')}님 환영합니다.")
 
-        # Kaggle 데이터셋 출처 및 소개
+        # --- [수정] 데이터셋 소개를 '지역별 인구 분석'으로 변경 ---
         st.markdown("""
                 ---
-                **Bike Sharing Demand 데이터셋**  
-                - 제공처: [Kaggle Bike Sharing Demand Competition](https://www.kaggle.com/c/bike-sharing-demand)  
-                - 설명: 2011–2012년 캘리포니아 주의 수도인 미국 워싱턴 D.C. 인근 도시에서 시간별 자전거 대여량을 기록한 데이터  
+                **지역별 인구 분석 데이터셋**  
+                - 원본 파일: `population_trends.csv`  
+                - 설명: 2008년부터 2023년까지 대한민국의 시/도별 연간 인구, 출생아 수, 사망자 수 데이터입니다.  
                 - 주요 변수:  
-                  - `datetime`: 날짜 및 시간  
-                  - `season`: 계절  
-                  - `holiday`: 공휴일 여부  
-                  - `workingday`: 근무일 여부  
-                  - `weather`: 날씨 상태  
-                  - `temp`, `atemp`: 기온 및 체감온도  
-                  - `humidity`, `windspeed`: 습도 및 풍속  
-                  - `casual`, `registered`, `count`: 비등록·등록·전체 대여 횟수  
+                  - `연도`: 데이터 기준 연도  
+                  - `지역`: 전국 및 각 시/도  
+                  - `인구`: 총 인구 수  
+                  - `출생아수(명)`: 해당 연도 출생아 수  
+                  - `사망자수(명)`: 해당 연도 사망자 수
                 """)
 
 # ---------------------
@@ -204,18 +201,21 @@ class EDA:
     def __init__(self):
         st.title("📊 EDA 분석")
 
-        # 분석 선택 옵션 추가
-        analysis_choice = st.selectbox(
-            "분석할 데이터 종류를 선택하세요.",
-            ("Bike Sharing Demand", "지역별 인구 분석")
-        )
+        # --- [수정] 분석 선택 옵션을 제거하고 '지역별 인구 분석'을 기본으로 실행 ---
+        # analysis_choice = st.selectbox(
+        #     "분석할 데이터 종류를 선택하세요.",
+        #     ("Bike Sharing Demand", "지역별 인구 분석")
+        # )
+        #
+        # # 선택에 따라 다른 분석을 보여주도록 분기
+        # if analysis_choice == "Bike Sharing Demand":
+        #     self.run_bike_sharing_eda()
+        # elif analysis_choice == "지역별 인구 분석":
+        #     self.run_population_trends_eda()
+        self.run_population_trends_eda() # 인구 분석 함수를 직접 호출
 
-        # 선택에 따라 다른 분석을 보여주도록 분기
-        if analysis_choice == "Bike Sharing Demand":
-            self.run_bike_sharing_eda()
-        elif analysis_choice == "지역별 인구 분석":
-            self.run_population_trends_eda()
-
+    # --- [수정] Bike Sharing EDA 관련 함수 전체 주석 처리 ---
+    """
     def run_bike_sharing_eda(self):
         st.header("🚲 Bike Sharing Demand EDA")
         uploaded = st.file_uploader("데이터셋 업로드 (train.csv)", type="csv", key="bike_uploader")
@@ -239,7 +239,7 @@ class EDA:
         # 1. 목적 & 분석 절차
         with tabs[0]:
             st.header("🔭 목적 & 분석 절차")
-            st.markdown("""
+            st.markdown(
             **목적**: Bike Sharing Demand 데이터셋을 탐색하고,
             다양한 특성이 대여량(count)에 미치는 영향을 파악합니다.
 
@@ -251,12 +251,12 @@ class EDA:
             5. 변수 간 상관관계 분석  
             6. 이상치 탐지 및 제거  
             7. 로그 변환을 통한 분포 안정화
-            """)
+            )
 
         # 2. 데이터셋 설명
         with tabs[1]:
             st.header("🔍 데이터셋 설명")
-            st.markdown(f"""
+            st.markdown(f
             - **train.csv**: 2011–2012년까지의 시간대별 대여 기록  
             - 총 관측치: {df.shape[0]}개  
             - 주요 변수:
@@ -276,7 +276,7 @@ class EDA:
               - **casual**: 비등록 사용자 대여 횟수  
               - **registered**: 등록 사용자 대여 횟수  
               - **count**: 전체 대여 횟수 (casual + registered)
-            """)
+            )
 
             st.subheader("1) 데이터 구조 (`df.info()`)")
             buffer = io.StringIO()
@@ -419,25 +419,25 @@ class EDA:
             # 상한치: 평균 + 3*표준편차
             upper = mean_count + 3 * std_count
 
-            st.markdown(f"""
+            st.markdown(f
                         - **평균(count)**: {mean_count:.2f}  
                         - **표준편차(count)**: {std_count:.2f}  
                         - **이상치 기준**: `count` > 평균 + 3×표준편차 = {upper:.2f}  
                           (통계학의 68-95-99.7 법칙(Empirical rule)에 따라 평균에서 3σ를 벗어나는 관측치는 전체의 약 0.3%로 극단치로 간주)
-                        """)
+                        )
             df_no = df[df['count'] <= upper]
             st.write(f"- 이상치 제거 전: {df.shape[0]}개, 제거 후: {df_no.shape[0]}개")
 
         # 8. 로그 변환
         with tabs[7]:
             st.header("🔄 로그 변환")
-            st.markdown("""
+            st.markdown(
                 **로그 변환 맥락**  
                 - `count` 변수는 오른쪽으로 크게 치우친 분포(skewed distribution)를 가지고 있어,  
                   통계 분석 및 모델링 시 정규성 가정이 어렵습니다.  
                 - 따라서 `Log(Count + 1)` 변환을 통해 분포의 왜도를 줄이고,  
                   중앙값 주변으로 데이터를 모아 해석력을 높입니다.
-                """)
+                )
 
             # 변환 전·후 분포 비교
             fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 4))
@@ -457,12 +457,13 @@ class EDA:
 
             st.pyplot(fig)
 
-            st.markdown("""
+            st.markdown(
                 > **그래프 해석:**  
                 > - 왼쪽: 원본 분포는 한쪽으로 긴 꼬리를 가진 왜곡된 형태입니다.  
                 > - 오른쪽: 로그 변환 후 분포는 훨씬 균형잡힌 형태로, 중앙값 부근에 데이터가 집중됩니다.  
                 > - 극단치의 영향이 완화되어 이후 분석·모델링 안정성이 높아집니다.
-                """)
+                )
+    """
 
     def run_population_trends_eda(self):
         st.header("📈 지역별 인구 트렌드 분석")
@@ -488,7 +489,7 @@ class EDA:
             '제주': 'Jeju'
         }
 
-        # --- [수정] 탭 구조로 변경 ---
+        # --- 탭 구조로 변경 ---
         tab1, tab2, tab3, tab4, tab5 = st.tabs([
             "기초 통계", "연도별 추이", "지역별 분석", "변화량 분석", "시각화"
         ])
